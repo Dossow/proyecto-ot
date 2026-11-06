@@ -86,6 +86,6 @@ services:
     environment:
       - MQTT_BROKER=broker-mqtt
       - MQTT_PORT=1883
-      - AWS_ENDPOINT=
+      - AWS_ENDPOINT=${AWS_ENDPOINT:-https://<IP_PUBLICA_EC2>:1880/telemetria}  # reemplazar la variable de entorno desde gns3 
     depends_on:
       - broker-mqtt
