@@ -1,4 +1,9 @@
-# filtrado - interfaces primero
+# ========================================================
+# INFRAESTRUCTURA CONVERGENTE OT/IT - FORTIGATE NGFW
+# Modelo Purdue / IEC 62443 - Segmentacion Perimetral
+# ========================================================
+
+# --- 1. INTERFACES DE RED ---
 config system interface
     edit "port1"
         set vdom "root"
@@ -7,7 +12,6 @@ config system interface
         set type physical
         set tcp-mss 1350
         set alias "WAN_IT_CLOUD"
-        set snmp-index 1
     next
     edit "port2"
         set vdom "root"
@@ -16,7 +20,6 @@ config system interface
         set type physical
         set tcp-mss 1350
         set alias "LAN_ZONA_OT"
-        set snmp-index 2
     next
     edit "port3"
         set vdom "root"
@@ -24,161 +27,80 @@ config system interface
         set allowaccess ping
         set type physical
         set alias "LAN_ZONA_IT"
-        set snmp-index 3
-    next
-    edit "port4"
-        set vdom "root"
-        set type physical
-        set snmp-index 4
-    next
-    edit "naf.root"
-        set vdom "root"
-        set type tunnel
-        set src-check disable
-        set snmp-index 5
-    next
-    edit "l2t.root"
-        set vdom "root"
-        set type tunnel
-        set snmp-index 6
-    next
-    edit "ssl.root"
-        set vdom "root"
-        set type tunnel
-        set alias "SSL VPN interface"
-        set snmp-index 7
-    next
-    edit "fortilink"
-        set vdom "root"
-        set fortilink enable
-        set ip 10.255.1.1 255.255.255.0
-        set allowaccess ping fabric
-        set type aggregate
-        set lldp-reception enable
-        set lldp-transmission enable
-        set snmp-index 8
     next
 end
 
-# politicas de tráfico
+# --- 2. SERVICIOS PERSONALIZADOS ---
+config firewall service custom
+    edit "MQTT_TCP_1883"
+        set tcp-portrange 1883
+    next
+    edit "GRAFANA_TCP_3000"
+        set tcp-portrange 3000
+    next
+    edit "INFLUXDB_TCP_8086"
+        set tcp-portrange 8086
+    next
+end
+
+# --- 3. OBJETOS DE DIRECCIONAMIENTO ---
+config firewall address
+    edit "ZONA_OT_SUBNET"
+        set subnet 192.168.10.0 255.255.255.0
+    next
+    edit "ZONA_IT_SUBNET"
+        set subnet 192.168.20.0 255.255.255.0
+    next
+    edit "HOST_PLC_CENTRAL"
+        set subnet 192.168.10.10 255.255.255.255
+    next
+    edit "HOST_GATEWAY_BORDE_OT"
+        set subnet 192.168.10.21 255.255.255.255
+    next
+    edit "HOST_BROKER_MQTT_IT"
+        set subnet 192.168.20.20 255.255.255.255
+    next
+    edit "HOST_PUENTE_AWS_IT"
+        set subnet 192.168.20.40 255.255.255.255
+    next
+    edit "all"
+    next
+end
+
+# --- 4. POLITICAS DE SEGURIDAD ---
 config firewall policy
     edit 1
         set name "PERMITIR_OT_A_IT_MQTT"
-        set uuid 8ce426b2-d97f-51f1-c110-338d722b5d0c
         set srcintf "port2"
         set dstintf "port3"
-        set action accept
         set srcaddr "HOST_GATEWAY_BORDE_OT"
         set dstaddr "HOST_BROKER_MQTT_IT"
+        set action accept
         set schedule "always"
         set service "MQTT_TCP_1883"
         set logtraffic all
     next
     edit 2
-        set name "PERMITIR_PUENTE_AWS_HTTPS_TLS"
-        set uuid 8cea8368-d97f-51f1-11b8-0caec24b3146
+        set name "PERMITIR_PUENTE_AWS_TELEMETRIA"
         set srcintf "port3"
         set dstintf "port1"
-        set action accept
         set srcaddr "HOST_PUENTE_AWS_IT"
         set dstaddr "all"
+        set action accept
         set schedule "always"
-        set service "HTTPS_NODERED_1880" "HTTPS" "DNS" "PING"
-        set logtraffic all
+        set service "HTTPS" "DNS" "PING" "INFLUXDB_TCP_8086"
         set nat enable
+        set logtraffic all
     next
     edit 3
         set name "BLOQUEAR_FUGA_DIRECTA_ZONA_OT"
-        set uuid 8cf0e94c-d97f-51f1-7ce4-624aeb5548f8
         set srcintf "port2"
         set dstintf "port1" "port3"
         set srcaddr "ZONA_OT_SUBNET"
         set dstaddr "all"
+        set action deny
         set schedule "always"
         set service "ALL"
         set logtraffic all
     next
 end
-
-# objetivos y lista de direcciones (whitelist)
-config firewall address
-    edit "none"
-        set uuid 7a1ba7ca-ce6d-51f1-b296-32e6789da4b3
-        set subnet 0.0.0.0 255.255.255.255
-    next
-    edit "login.microsoftonline.com"
-        set uuid 7a1bac16-ce6d-51f1-ce2a-62fc5dd9a65f
-        set type fqdn
-        set fqdn "login.microsoftonline.com"
-    next
-    edit "login.microsoft.com"
-        set uuid 7a1baef0-ce6d-51f1-653d-9a21e93d51a4
-        set type fqdn
-        set fqdn "login.microsoft.com"
-    next
-    edit "login.windows.net"
-        set uuid 7a1bb10c-ce6d-51f1-df6a-686c41e42256
-        set type fqdn
-        set fqdn "login.windows.net"
-    next
-    edit "gmail.com"
-        set uuid 7a1bb33c-ce6d-51f1-1170-2cc6e69ed1dd
-        set type fqdn
-        set fqdn "gmail.com"
-    next
-    edit "wildcard.google.com"
-        set uuid 7a1bb562-ce6d-51f1-15d8-8c020c9876b8
-        set type fqdn
-        set fqdn "*.google.com"
-    next
-    edit "wildcard.dropbox.com"
-        set uuid 7a1bb756-ce6d-51f1-d8ed-9617a2182ddf
-        set type fqdn
-        set fqdn "*.dropbox.com"
-    next
-    edit "all"
-        set uuid 7a9aa2a0-ce6d-51f1-2434-10f83cd8c442
-    next
-    edit "FIREWALL_AUTH_PORTAL_ADDRESS"
-        set uuid 7a9aa3d6-ce6d-51f1-bb65-196dae8419bb
-    next
-    edit "FABRIC_DEVICE"
-        set uuid 7a9aa49e-ce6d-51f1-e152-e1d6e8b40fe4
-        set comment "IPv4 addresses of Fabric Devices."
-    next
-    edit "SSLVPN_TUNNEL_ADDR1"
-        set uuid 7a9af84a-ce6d-51f1-4b0e-6398976bfc81
-        set type iprange
-        set start-ip 10.212.134.200
-        set end-ip 10.212.134.210
-    next
-    edit "ZONA_OT_SUBNET"
-        set uuid c4cee546-cf0f-51f1-59d9-61db95d5f251
-        set subnet 192.168.10.0 255.255.255.0
-    next
-    edit "HOST_PUENTE_AWS"
-        set uuid c4d06b32-cf0f-51f1-b655-88f0caddc50b
-        set subnet 192.168.10.18 255.255.255.255
-    next
-    edit "HOST_PLC_CENTRAL"
-        set uuid c4d261bc-cf0f-51f1-b900-c3cc7968d0e5
-        set subnet 192.168.10.10 255.255.255.255
-    next
-    edit "ZONA_IT_SUBNET"
-        set uuid 8cd6d00c-d97f-51f1-64ba-b4e0055f0cde
-        set subnet 192.168.20.0 255.255.255.0
-    next
-    edit "HOST_GATEWAY_BORDE_OT"
-        set uuid 8cd87772-d97f-51f1-1ef0-8a6ae1a84301
-        set subnet 192.168.10.21 255.255.255.255
-    next
-    edit "HOST_BROKER_MQTT_IT"
-        set uuid 8cda8152-d97f-51f1-9468-34628e8fd376
-        set subnet 192.168.20.20 255.255.255.255
-    next
-    edit "HOST_PUENTE_AWS_IT"
-        set uuid 8cdc0c16-d97f-51f1-d778-a755864cefe3
-        set subnet 192.168.20.40 255.255.255.255
-    next
-end
-
