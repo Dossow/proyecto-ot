@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # --- NIVEL 1 & 2: CONTROL Y PROCESO OT ---
+  plc-central:
+    build:
+      context: ./plc
+      dockerfile: Dockerfile
+    container_name: plc-central
+    ports:
+      - "502:502"
+    restart: unless-stopped
+
+  estanque-agua:
+    build:
+      context: ./estanque
+      dockerfile: Dockerfile
+    container_name: estanque-agua
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  sensor-nivel:
+    build:
+      context: ./sensor
+      dockerfile: Dockerfile
+    container_name: sensor-nivel
+    environment:
+      - PLC_IP=plc-central
+      - ESTANQUE_URL=http://estanque-agua:5000
+    depends_on:
+      - plc-central
+      - estanque-agua
+
+  actuador-bomba:
+    build:
+      context: ./actuador
+      dockerfile: Dockerfile
+    container_name: actuador-bomba
+    environment:
+      - PLC_IP=plc-central
+      - ESTANQUE_URL=http://estanque-agua:5000
+    depends_on:
+      - plc-central
+      - estanque-agua
+
+  # --- NIVEL 3: SUPERVISIÓN OT ---
+  panel-hmi:
+    build:
+      context: ./hmi
+      dockerfile: Dockerfile
+    container_name: panel-hmi-local
+    ports:
+      - "8080:8080"
+    environment:
+      - PLC_IP=plc-central
+    depends_on:
+      - plc-central
+
+  gateway-borde:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway-borde
+    environment:
+      - PLC_IP=plc-central
+      - MQTT_BROKER=broker-mqtt
+      - MQTT_PORT=1883
+    depends_on:
+      - plc-central
+      - broker-mqtt
+
+  # --- NIVEL 3.5: DMZ E INTEGRACIÓN IT ---
+  broker-mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: broker-mqtt
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
+  puente-aws:
+    build:
+      context: ./puente-aws
+      dockerfile: Dockerfile
+    container_name: puente-aws
+    environment:
+      - MQTT_BROKER=broker-mqtt
+      - MQTT_PORT=1883
+      - AWS_ENDPOINT=
+    depends_on:
+      - broker-mqtt
