@@ -5,7 +5,12 @@ logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logg
 
 PLC_IP = "192.168.10.10"
 IP_SENSOR_AUTORIZADO = "192.168.10.12"
-IPS_LECTURA_AUTORIZADAS = {"192.168.10.13", "192.168.10.14", "192.168.10.15"}
+IPS_LECTURA_AUTORIZADAS = {
+        "192.168.10.13", # actuador bomba agua
+        "192.168.10.21", # gw borde
+        "192.168.10.30", # panel hmi local
+        "192.168.10.14"  # hmi alt (kali linux)
+}
 
 CODIGOS_FUNCION = {
     1: "FC01 Read Coils",
