@@ -32,7 +32,7 @@ import urllib3
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)
 
 # --- Configuracion (sobrescribible con variables de entorno desde GNS3) --------------------
-MQTT_BROKER = os.getenv("MQTT_BROKER", "192.168.10.16")
+MQTT_BROKER = os.getenv("MQTT_BROKER", "192.168.20.20")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 MQTT_USUARIO = os.getenv("MQTT_USUARIO", "")
 MQTT_CLAVE = os.getenv("MQTT_CLAVE", "")
@@ -269,3 +269,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
