@@ -35,7 +35,7 @@ logging.getLogger("pymodbus").setLevel(logging.CRITICAL)  # los reintentos ya se
 PLC_IP = os.getenv("PLC_IP", "192.168.10.10")
 PLC_PORT = int(os.getenv("PLC_PORT", "502"))
 
-MQTT_BROKER = os.getenv("MQTT_BROKER", "192.168.10.16")
+MQTT_BROKER = os.getenv("MQTT_BROKER", "192.168.20.20")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 MQTT_USUARIO = os.getenv("MQTT_USUARIO", "")
 MQTT_CLAVE = os.getenv("MQTT_CLAVE", "")
